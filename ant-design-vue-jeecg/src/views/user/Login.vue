@@ -42,7 +42,7 @@
               </a-form-item>
             </a-col>
             <a-col  :span="10">
-              <j-graphic-code @success="generateCode" style="float: right"></j-graphic-code>
+              <j-graphic-code @success="generateCode" ref="jgraphicCodeRef" style="float: right" remote></j-graphic-code>
             </a-col>
           </a-row>
 
@@ -176,6 +176,8 @@
   import { putAction } from '@/api/manage'
   import { postAction } from '@/api/manage'
   import { encryption , getEncryptedString } from '@/utils/encryption/aesEncrypt'
+  import store from '@/store/'
+  import { USER_INFO } from "@/store/mutation-types"
 
   export default {
     components: {
@@ -263,6 +265,9 @@
               //loginParams.password = encryption(values.password,that.encryptedString.key,that.encryptedString.iv)
               loginParams.password = values.password
               // update-begin- --- author:scott ------ date:20190805 ---- for:密码加密逻辑暂时注释掉，有点问题
+              let checkParams = this.$refs.jgraphicCodeRef.getLoginParam()
+              loginParams.captcha = checkParams.checkCode
+              loginParams.checkKey = checkParams.checkKey
 
               that.Login(loginParams).then((res) => {
                 this.departConfirm(res)
@@ -342,7 +347,9 @@
         })
       },
       loginSuccess () {
-        this.loginBtn = false
+        // update-begin- author:sunjianlei --- date:20190812 --- for: 登录成功后不解除禁用按钮，防止多次点击
+        // this.loginBtn = false
+        // update-end- author:sunjianlei --- date:20190812 --- for: 登录成功后不解除禁用按钮，防止多次点击
         this.$router.push({ name: "dashboard" })
         this.$notification.success({
           message: '欢迎',
@@ -425,6 +432,10 @@
         }
         putAction("/sys/selectDepart",obj).then(res=>{
           if(res.success){
+            const userInfo = res.result.userInfo;
+            Vue.ls.set(USER_INFO, userInfo, 7 * 24 * 60 * 60 * 1000);
+            store.commit('SET_INFO', userInfo);
+            //console.log("---切换组织机构---userInfo-------",store.getters.userInfo.orgCode);
             this.departClear()
             this.loginSuccess()
           }else{
